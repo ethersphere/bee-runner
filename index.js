@@ -1,19 +1,36 @@
 /**
  * This is the main entrypoint to your Probot app
- * @param {import('probot').Application} app
+ * @param {import('probot').Application} robot
  */
-module.exports = app => {
-  // Your code here
-  app.log.info('Yay, the app was loaded!')
 
-  app.on('issues.opened', async context => {
-    const issueComment = context.issue({ body: 'Thanks for opening this issue!' })
-    return context.github.issues.createComment(issueComment)
-  })
+const commands = require('probot-commands')
 
-  // For more information on building apps:
-  // https://probot.github.io/docs/
+module.exports = async robot => {
+  robot.log.info('Yay, the robot was loaded!')
+  robot.on('issue_comment.created', async context => {
+    robot.log.info(context.payload.comment.author_association)
+    if ((context.payload.comment.author_association === "OWNER") || (context.payload.comment.author_association === "MEMBER")) {
+      commands(robot, 'label', async (context, command) => {
+        const labels = command.arguments.split(/, */);
+        return context.github.issues.addLabels(context.issue({labels}));
+      });
 
-  // To get your app running against GitHub, see:
-  // https://probot.github.io/docs/development/
+      commands(robot, 'unlabel', async (context, command) => {
+        const name = command.arguments;
+        return context.github.issues.removeLabel(context.issue({name}));
+      });
+
+      commands(robot, 'run', async (context, command) => {
+        const event_type = command.arguments;
+        const pr = context.pullRequest();
+        const owner = pr.owner;
+        const repo = pr.repo;
+
+        const pull = await context.github.pulls.get(pr);
+        const client_payload = {"ref": pull.data.head.ref, "sha": pull.data.head.sha};
+
+        return context.github.repos.createDispatchEvent({owner, repo, event_type, client_payload});
+      });
+    };
+  });
 }
