@@ -24,38 +24,49 @@ module.exports = robot => {
     });
 
     commands(robot, 'run', async (context, command) => {
-      if ((context.payload.comment.author_association === "OWNER") || (context.payload.comment.author_association === "MEMBER")) {
+
+      console.log('context.payload', context.payload); //TODO: remove
+
+      // check if user belongs to project organization
+      const username = context.payload.comment.user.login;
+
+      console.log('username', username); //TODO: remove
+
+      if (!username) {
+        return;
+      }
+
+      const pr = context.pullRequest();
+      const owner = pr.owner;
+      const repo = pr.repo;
+
+      console.log('pr', pr); //TODO: remove
+
+      const response = await context.github.checkMembershipForUser({ org: 'ethersphere', username }); //TODO: hard-coded
+
+      console.log('checkMembershipForUser/response', response); //TODO: remove
+
+      if (response && response.status === 204) {
         const event_type = command.arguments;
-        const pr = context.pullRequest();
-        const owner = pr.owner;
-        const repo = pr.repo;
+        const comment_id = context.payload.comment.id;
 
         const pull = await context.github.pulls.get(pr);
-        const client_payload = {"ref": pull.data.head.ref, "sha": pull.data.head.sha};
+        const client_payload = { "ref": pull.data.head.ref, "sha": pull.data.head.sha };
+
+        // add reaction
+        const reaction_content = 'rocket';
+        const reactionRes = await context.github.reactions.createForPullRequestReviewComment({
+          owner,
+          repo,
+          comment_id,
+          content: reaction_content
+        });
+
+        console.log('createForPullRequestReviewComment/response', reactionRes); //TODO: remove
+
         return context.github.repos.createDispatchEvent({owner, repo, event_type, client_payload});
-      } else if ((context.payload.comment.author_association === "COLLABORATOR") || (context.payload.comment.author_association === "CONTRIBUTOR")) {
-        // check if user belongs to project organization
-        const username = context.payload.comment.user.login;
-
-        if (!username) {
-          return;
-        }
-
-        const pr = context.pullRequest();
-        const owner = pr.owner;
-        const repo = pr.repo;
-
-        const response = await context.github.checkMembershipForUser({ org: owner, username });
-
-        if (response && response.status === 204) {
-          const event_type = command.arguments;
-
-          const pull = await context.github.pulls.get(pr);
-          const client_payload = { "ref": pull.data.head.ref, "sha": pull.data.head.sha };
-
-          return context.github.repos.createDispatchEvent({owner, repo, event_type, client_payload});
-        }
       }
+
       return;
     });
 }
