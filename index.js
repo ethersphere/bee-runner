@@ -51,7 +51,7 @@ module.exports = robot => {
 
       // add reaction
       const reaction_content = 'rocket';
-      const reactionRes = await context.github.reactions.createForIssueComment({
+      await context.github.reactions.createForIssueComment({
         owner,
         repo,
         comment_id,
