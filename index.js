@@ -42,7 +42,7 @@ module.exports = robot => {
 
       console.log('pr', pr); //TODO: remove
 
-      const response = await context.github.checkMembershipForUser({ org: 'ethersphere', username }); //TODO: hard-coded
+      const response = await context.github.orgs.checkMembershipForUser({ org: 'ethersphere', username }); //TODO: hard-coded
 
       console.log('checkMembershipForUser/response', response); //TODO: remove
 
