@@ -12,6 +12,18 @@ npm install
 npm start
 ```
 
+## Configuration
+
+You can place a custom configuration for repo into `.github/config.yaml`.
+
+Possible configuration:
+
+```yaml
+labels:
+  issue: <<some other name for issue label>>
+  pull-request: <<some other name for pull-request label>>
+```
+
 ## Contributing
 
 If you have suggestions for how bee-runner could be improved, or want to report a bug, open an issue! We'd love all and any contributions.

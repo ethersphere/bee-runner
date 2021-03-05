@@ -6,24 +6,34 @@
 const commands = require('probot-commands')
 const autz = require('./lib/autz')
 
+async function getLabelName (context, name) {
+  const config = await context.config('config.yaml')
+
+  if (!config || !config.labels || !config.labels[name]) {
+    return name
+  }
+
+  return config.labels[name]
+}
+
 module.exports = robot => {
   robot.log.info('Yay, the robot was loaded!');
 
   robot.on('issues.opened', async context => {
-    const labels = ['issue'];
-    return context.github.issues.addLabels(context.issue({labels}));
+    const labels = [await getLabelName(context, 'issue')];
+    return context.octokit.issues.addLabels(context.issue({labels}));
   });
 
   robot.on('pull_request.opened', async context => {
-    const labels = ['pull-request'];
-    return context.github.issues.addLabels(context.issue({labels}));
+    const labels = [await getLabelName(context, 'pull-request')];
+    return context.octokit.issues.addLabels(context.issue({labels}));
   });
 
   commands(robot, 'label', async (context, command) => {
     const authorized = await autz.checkAutz(context);
     if (!!authorized) {
       const labels = command.arguments.split(/, */);
-      return context.github.issues.addLabels(context.issue({labels}));
+      return context.octokit.issues.addLabels(context.issue({labels}));
     }
     return;
   });
@@ -32,7 +42,7 @@ module.exports = robot => {
     const authorized = await autz.checkAutz(context);
     if (!!authorized) {
       const name = command.arguments;
-      return context.github.issues.removeLabel(context.issue({name}));
+      return context.octokit.issues.removeLabel(context.issue({name}));
     }
     return;
   });
@@ -46,19 +56,19 @@ module.exports = robot => {
       const repo = pr.repo;
       const comment_id = context.payload.comment.id;
 
-      const pull = await context.github.pulls.get(pr);
+      const pull = await context.octokit.pulls.get(pr);
       const client_payload = {"ref": pull.data.head.ref, "sha": pull.data.head.sha};
 
       // add reaction
       const reaction_content = 'rocket';
-      await context.github.reactions.createForIssueComment({
+      await context.octokit.reactions.createForIssueComment({
         owner,
         repo,
         comment_id,
         content: reaction_content
       });
 
-      return context.github.repos.createDispatchEvent({owner, repo, event_type, client_payload});
+      return context.octokit.repos.createDispatchEvent({owner, repo, event_type, client_payload});
     }
     return;
   });
