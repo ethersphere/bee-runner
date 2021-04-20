@@ -5,6 +5,7 @@
 
 const commands = require('probot-commands')
 const autz = require('./lib/autz')
+const handleReleaseChecklist = require('./release-checklist')
 
 async function getLabelName (context, name) {
   const config = await context.config('config.yaml')
@@ -16,17 +17,21 @@ async function getLabelName (context, name) {
   return config.labels[name]
 }
 
+async function handleLabels (context, type) {
+  const labels = [await getLabelName(context, type)];
+  return context.octokit.issues.addLabels(context.issue({labels}));
+}
+
 module.exports = robot => {
   robot.log.info('Yay, the robot was loaded!');
 
-  robot.on('issues.opened', async context => {
-    const labels = [await getLabelName(context, 'issue')];
-    return context.octokit.issues.addLabels(context.issue({labels}));
+  robot.on('issues.opened', context => {
+    return handleLabels(context, 'issue')
   });
 
   robot.on('pull_request.opened', async context => {
-    const labels = [await getLabelName(context, 'pull-request')];
-    return context.octokit.issues.addLabels(context.issue({labels}));
+    await handleLabels(context, 'pull-request')
+    await handleReleaseChecklist(context)
   });
 
   commands(robot, 'label', async (context, command) => {
