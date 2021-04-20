@@ -5,7 +5,7 @@
 
 const commands = require('probot-commands')
 const autz = require('./lib/autz')
-const handleReleaseChecklist = require('./release-checklist')
+const handleReleaseChecklist = require('./lib/release-checklist')
 
 async function getLabelName (context, name) {
   const config = await context.config('config.yaml')
